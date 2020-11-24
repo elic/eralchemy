@@ -56,7 +56,7 @@ class Post(Base):
     id = Column(Integer, primary_key=True)
 
     author_id = Column(Integer,
-                       ForeignKey(User.id, ondelete='CASCADE'),
+                       ForeignKey("users.id", ondelete='CASCADE'),
                        nullable=False)
 
     title = Column(Unicode(200))
@@ -83,11 +83,11 @@ class Comment(Base):
     id = Column(Integer, primary_key=True)
 
     author_id = Column(Integer,
-                       ForeignKey(User.id, ondelete='CASCADE'),
+                       ForeignKey("users.id", ondelete='CASCADE'),
                        nullable=False)
 
     post_id = Column(Integer,
-                     ForeignKey(Post.id, ondelete='CASCADE'),
+                     ForeignKey("posts.id", ondelete='CASCADE'),
                      nullable=False)
 
     parent_id = Column(Integer,

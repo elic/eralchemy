@@ -6,7 +6,7 @@ ERAlchemy generates Entity Relation (ER) diagram (like the one below) from datab
 
 ## Example
 
-![Example for a graph](https://raw.githubusercontent.com/Alexis-benoist/eralchemy/master/newsmeme.png?raw=true "Example for NewsMeme")
+![Example for a graph](https://raw.githubusercontent.com/elic/eralchemy/develop/newsmeme.png?raw=true "Example for NewsMeme")
 
 [Example for NewsMeme](https://bitbucket.org/danjac/newsmeme)
 
