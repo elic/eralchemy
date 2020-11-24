@@ -45,7 +45,7 @@ class Column(Drawable):
             is_key='*' in match.group('primary'),  # TODO foreign key
         )
 
-    def __init__(self, name, type=None, is_key=False):
+    def __init__(self, name, type=None, is_key=False, is_nullable=False, is_fkey=False, default='', indexed=False, is_unique=False):
         """
         :param name: (str) Name of the column
         :param type:
@@ -55,6 +55,11 @@ class Column(Drawable):
         self.name = name
         self.type = type
         self.is_key = is_key
+        self.is_nullable = is_nullable
+        self.is_fkey = is_fkey
+        self.is_unique = is_unique
+        self.default = default
+        self.indexed = indexed
 
     @property
     def key_symbol(self):
@@ -64,12 +69,17 @@ class Column(Drawable):
         return '    {}{} {{label:"{}"}}'.format(self.key_symbol, self.name, self.type)
 
     def to_dot(self):
-        base = ROW_TAGS.format(' ALIGN="LEFT"', '{key_opening}{col_name}{key_closing}{type}')
+        base = ROW_TAGS.format(' PORT="{colname}" ALIGN="LEFT"', '{key}</TD><TD ALIGN="LEFT">{col_name}</TD><TD ALIGN="LEFT">{type}</TD><TD>{nullable}{is_unique}{indexed}</TD><TD PORT="s{scolname}">{fkey}')
         return base.format(
-            key_opening='<u>' if self.is_key else '',
-            key_closing='</u>' if self.is_key else '',
+            key='🔑' if self.is_key else '',
+            colname=self.name,
+            scolname=self.name,
             col_name=FONT_TAGS.format(self.name),
-            type=FONT_TAGS.format(' [{}]').format(self.type) if self.type is not None else ''
+            nullable='🈳' if self.is_nullable else '',
+            is_unique='🧬' if self.is_unique else '',
+            indexed='🗂' if self.indexed else '',
+            fkey='🗝' if self.is_fkey else '',
+            type=FONT_TAGS.format('{}').format(self.type) if self.type is not None else ''
         )
 
 
@@ -94,12 +104,14 @@ class Relation(Drawable):
             left_cardinality=match.group('left_cardinality'),
         )
 
-    def __init__(self, right_col, left_col, right_cardinality=None, left_cardinality=None):
+    def __init__(self, right_col, left_col, right_cardinality=None, left_cardinality=None, right_cols='', left_cols=''):
         if right_cardinality not in self.cardinalities.keys() \
                 or left_cardinality not in self.cardinalities.keys():
             raise ValueError('Cardinality should be in {}"'.format(self.cardinalities.keys()))
         self.right_col = right_col
         self.left_col = left_col
+        self.right_cols = right_cols
+        self.left_cols = left_cols
         self.right_cardinality = right_cardinality
         self.left_cardinality = left_cardinality
 
@@ -119,6 +131,7 @@ class Relation(Drawable):
     def to_dot(self):
         if self.right_cardinality == self.left_cardinality == '':
             return ''
+        return '{} -> {};'.format(self.right_cols, self.left_cols)
         cards = []
         if self.left_cardinality != '':
             cards.append('tail' +
@@ -144,9 +157,11 @@ class Table(Drawable):
     """ Represents a Table in the intermediaty syntax """
     RE = re.compile('\[(?P<name>[^]]+)\]')
 
-    def __init__(self, name, columns):
+    def __init__(self, name, columns, unique_constraints=[], er_args=()):
         self.name = name
         self.columns = columns
+        self.unique_constraints=unique_constraints
+        self.er_args=er_args
 
     @staticmethod
     def make_from_match(match):
@@ -168,10 +183,12 @@ class Table(Drawable):
 
     @property
     def header_dot(self):
-        return ROW_TAGS.format('', '<B><FONT POINT-SIZE="16">{}</FONT></B>').format(self.name)
+        return ROW_TAGS.format(' COLSPAN="5" BGCOLOR="snow2"', '<B><FONT POINT-SIZE="16">{}</FONT></B>').format(self.name)
 
     def to_dot(self):
         body = ''.join(c.to_dot() for c in self.columns)
+        for constraint in self.unique_constraints:
+            body += '<TR><TD COLSPAN="5">🧬 &#60;'+', '.join(constraint)+'&#62;</TD></TR>'
         return TABLE.format(self.name, self.header_dot, body)
 
     def __str__(self):

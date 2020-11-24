@@ -6,6 +6,7 @@ This class allow to transform SQLAlchemy metadata to the intermediary syntax.
 from eralchemy.models import Relation, Column, Table
 import sys
 from sqlalchemy.exc import CompileError
+from sqlalchemy import UniqueConstraint
 
 if sys.version_info[0] == 3:
     unicode = str
@@ -16,6 +17,8 @@ def relation_to_intermediary(fk):
     return Relation(
         right_col=format_name(fk.parent.table.fullname),
         left_col=format_name(fk._column_tokens[1]),
+        right_cols=str(fk.parent).replace('.', ':s'),
+        left_cols=str(fk.target_fullname).replace('.', ':'),
         right_cardinality='?',
         left_cardinality='*',
     )
@@ -40,14 +43,24 @@ def column_to_intermediary(col, type_formatter=format_type):
         name=col.name,
         type=type_formatter(col.type),
         is_key=col.primary_key,
+        is_nullable=col.nullable,
+        is_fkey=bool(col.foreign_keys),
+        is_unique=col.unique,
+        default=col.default,
+        indexed=col.index
     )
 
 
 def table_to_intermediary(table):
     """Transform an SQLAlchemy Table object to it's intermediary representation. """
+    unique_constraints = []
+    for col in [c for c in table.constraints if isinstance(c, UniqueConstraint)]:
+        if len(col.columns) >= 2:
+            unique_constraints.append([x.name for x in col.columns])
     return Table(
         name=table.fullname,
-        columns=[column_to_intermediary(col) for col in table.c._data.values()]
+        columns=[column_to_intermediary(col) for col in table.c._data.values()],
+        unique_constraints=unique_constraints
     )
 
 
